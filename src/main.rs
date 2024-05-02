@@ -1,8 +1,11 @@
 mod todo;
 
 fn main() {
-    let mut todo = todo::Todo::new(1, "Learn Rust".to_string(), "2021-09-01".to_string(), false);
-    todo.print();
-    todo.toggle();
-    todo.print();
+    let mut todo = todo::Todo::new();
+    todo.add_task("Buy milk".to_string(), "Buy before night".to_string(), None, None);
+    todo.add_task("Buy bread".to_string(), "Buy before night".to_string(), None, None);
+    todo.toggle_task(0);
+    for task in todo.list_all_tasks() {
+        println!("Task: {}", task.title);
+    }
 }
