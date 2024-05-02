@@ -1,11 +1,48 @@
-mod todo;
+use iced::widget::{column, text, button};
+use iced::{Sandbox, Settings};
+use iced::Element;
 
-fn main() {
-    let mut todo = todo::Todo::new();
-    todo.add_task("Buy milk".to_string(), "Buy before night".to_string(), None, None);
-    todo.add_task("Buy bread".to_string(), "Buy before night".to_string(), None, None);
-    todo.toggle_task(0);
-    for task in todo.list_all_tasks() {
-        println!("Task: {}", task.title);
+use std::env;
+
+fn main() -> iced::Result {
+    env::set_var("RUST_BACKTRACE", "1");
+    Test::run(Settings::default())
+}
+
+struct Test {
+    value: i32,
+}
+
+#[derive(Debug, Clone)]
+enum Message {
+    Increment,
+    Decrement,
+}
+
+impl Sandbox for Test {
+    type Message = Message;
+    fn new() -> Test {
+        Test { value: 0 }
+    }
+
+    fn title(&self) -> String {
+        String::from("Test")
+    }
+
+    fn update(&mut self, message: Message) {
+        match message {
+            Message::Increment => self.value += 1,
+            Message::Decrement => self.value -= 1,
+        }
+    }
+
+    fn view(&self) -> Element<Message> {
+        let content: Element<_> = column![
+            button("Increment").on_press(Message::Increment),
+            button("Decrement").on_press(Message::Decrement),
+            text(self.value.to_string())
+        ].into();
+
+        content
     }
 }

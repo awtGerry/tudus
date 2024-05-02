@@ -14,6 +14,10 @@
    - List all tasks that are due within a week
 */
 
+// use iced::widget::text;
+// use iced::widget::column;
+use iced::widget::{text, column, Column};
+
 use std::collections::HashMap;
 use std::fmt;
 use std::time::SystemTime;
@@ -71,12 +75,34 @@ pub struct Todo {
 }
 
 #[allow(unused)]
+#[derive(Debug, Clone, Copy)]
+pub enum TodoMessage {
+    AddTask,
+    RemoveTask,
+    ToggleTask,
+    EditTask,
+    CategorizeTask,
+    ListAllTasks,
+    ListAllDoneTasks,
+    ListAllNotDoneTasks,
+    ListAllTasksDueToday,
+    ListAllTasksDueWithinWeek,
+    ListAllTasksByCategory,
+}
+
+#[allow(unused)]
 impl Todo {
     pub fn new() -> Todo {
         Todo {
             tasks: HashMap::new(),
             next_id: 0,
         }
+    }
+
+    pub fn view(&self) -> Column<TodoMessage> {
+        column![
+            text("Hello, world!"),
+        ]
     }
 
     pub fn add_task(&mut self, title: String, description: String, due_date: Option<SystemTime>, category: Option<String>) -> u32 {
