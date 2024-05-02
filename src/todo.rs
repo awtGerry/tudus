@@ -5,31 +5,25 @@ pub struct Todo {
     completed: bool,
 }
 
-impl std::default::Default for Todo {
-    fn default() -> Todo {
-        return Todo {
-            id: 0,
-            title: String::from(""),
-            date: String::from(""),
-            completed: false,
-        };
-    }
-}
+/*
+    Implementing the Todo struct with the following methods:
+    - new -> creates a new Todo instance
+    - toggle -> toggles the completed field of the Todo instance
+    - get -> returns the Todo instance
 
-/* pub enum TodoError {
-    InvalidId,
-    InvalidTitle,
-    InvalidDate,
-} */
+    TODO:
+    import database
+    implement the methods to interact with the database
+*/
 
 impl Todo {
-    pub fn new(id: u32, title: String, date: String, completed: bool) -> Todo {
-        return Todo {
+    pub fn new(id: u32, title: String, date: String, completed: bool) -> Self {
+        Self {
             id,
             title,
             date,
             completed,
-        };
+        }
     }
 
     pub fn toggle(&mut self) {
@@ -37,7 +31,9 @@ impl Todo {
     }
 
     pub fn print(&self) {
-        println!("{} - {} - {} - {}", self.id, self.title, self.date, self.completed);
+        println!("ID: {}", self.id);
+        println!("Title: {}", self.title);
+        println!("Date: {}", self.date);
+        println!("Completed: {}", self.completed);
     }
-
 }

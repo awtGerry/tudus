@@ -1,7 +1,7 @@
 mod todo;
 
 fn main() {
-    let mut todo = todo::Todo::new(1, String::from("Buy milk"), String::from("2021-01-01"), false);
+    let mut todo = todo::Todo::new(1, "Learn Rust".to_string(), "2021-09-01".to_string(), false);
     todo.print();
     todo.toggle();
     todo.print();
