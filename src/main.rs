@@ -1,48 +1,42 @@
-use iced::widget::{column, text, button};
-use iced::{Sandbox, Settings};
-use iced::Element;
-
-use std::env;
+use iced::widget::{container, text_editor};
+use iced::Sandbox;
 
 fn main() -> iced::Result {
-    env::set_var("RUST_BACKTRACE", "1");
-    Test::run(Settings::default())
+    TodoApp::run(iced::Settings::default())
 }
 
-struct Test {
-    value: i32,
+struct TodoApp {
+    content: iced::widget::text_editor::Content,
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    Increment,
-    Decrement,
+    Edit(iced::widget::text_editor::Action),
 }
 
-impl Sandbox for Test {
+impl Sandbox for TodoApp {
     type Message = Message;
-    fn new() -> Test {
-        Test { value: 0 }
-    }
 
-    fn title(&self) -> String {
-        String::from("Test")
-    }
-
-    fn update(&mut self, message: Message) {
-        match message {
-            Message::Increment => self.value += 1,
-            Message::Decrement => self.value -= 1,
+    fn new() -> Self {
+        Self {
+            content: text_editor::Content::new(),
         }
     }
 
-    fn view(&self) -> Element<Message> {
-        let content: Element<_> = column![
-            button("Increment").on_press(Message::Increment),
-            button("Decrement").on_press(Message::Decrement),
-            text(self.value.to_string())
-        ].into();
+    fn title(&self) -> String {
+        String::from("Todo's App")
+    }
 
-        content
+    fn update(&mut self, message: Self::Message) {
+        match message {
+            Message::Edit(action) => {
+                self.content.perform(action)
+            }
+        }
+    }
+
+    fn view(&self) -> iced::Element<'_, Self::Message> {
+        let input = text_editor(&self.content).on_action(Message::Edit);
+        container(input).padding(10).into()
     }
 }
