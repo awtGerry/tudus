@@ -26,8 +26,16 @@
 
       buildInputs = with pkgs; [
         vulkan-loader
+        # for wayland
         wayland
         wayland-protocols
+
+        # for x11
+        xorg.libX11
+        xorg.libXcursor
+        xorg.libXrandr
+        xorg.libXi
+
         libxkbcommon
       ];
       my-crate = crane.lib.${system}.buildPackage {
@@ -38,6 +46,7 @@
           pkg-config
           gtk-layer-shell
           gtk3
+          cmake
         ];
       };
     in {
