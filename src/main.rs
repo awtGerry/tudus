@@ -6,8 +6,10 @@ use iced::widget::{
     text,
     button,
     horizontal_space,
+    tooltip
 };
 use iced::theme::Button;
+use iced::theme;
 use iced::Application;
 use iced::{Theme, Command, Settings, Element, Font};
 
@@ -22,27 +24,31 @@ fn main() -> iced::Result {
 
 struct TodoApp {
     content: iced::widget::text_editor::Content,
+    theme: usize, // 1 for light, 0 for dark
 }
 
 #[derive(Debug, Clone)]
-enum Todo {
+enum App {
     Edit(iced::widget::text_editor::Action),
     Calendar,
     Reminder,
-    New
+    New,
+    ThemeSwitcher,
 }
 
 impl Application for TodoApp {
-    type Message = Todo; // Messages that can be sent to the app
+    type Message = App; // Messages that can be sent to the app
 
     type Theme = Theme; // Custom theme (use default dark for now)
     type Executor = iced::executor::Default; // engine to run async tasks
     type Flags = (); // data passed to the app on startup
 
-    fn new(_flags: Self::Flags) -> (Self, Command<Todo>) {
+    fn new(_flags: Self::Flags) -> (Self, Command<App>) {
+        let theme = std::fs::read_to_string("theme.txt").unwrap_or("1".to_string());
         (
             Self {
-                content: text_editor::Content::new()
+                content: text_editor::Content::new(),
+                theme: theme.parse().unwrap(),
             },
             Command::none()
         )
@@ -52,68 +58,114 @@ impl Application for TodoApp {
         String::from("Todo's App")
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Todo> {
+    fn update(&mut self, message: Self::Message) -> Command<App> {
         match message {
-            Todo::Edit(action) => {
+            App::Edit(action) => {
                 self.content.perform(action);
                 Command::none()
             }
-            Todo::Calendar => {
+            App::Calendar => {
                 Command::none()
             }
-            Todo::Reminder => {
+            App::Reminder => {
                 Command::none()
             }
-            Todo::New => {
+            App::New => {
                 let todo = self.content.text();
                 println!("Todo: {}", todo);
+                Command::none()
+            }
+            App::ThemeSwitcher => {
+                if self.theme == 1 {
+                    std::fs::write("theme.txt", "0").unwrap();
+                    self.theme = 0;
+                } else {
+                    std::fs::write("theme.txt", "1").unwrap();
+                    self.theme = 1;
+                }
                 Command::none()
             }
         }
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
-        let todos_title = text("New todo".to_string()).size(25).height(50);
+        let header = {
+            let new_todo_title = text("Tudus").size(25).height(50);
+            row![
+                new_todo_title,
+                horizontal_space(),
+                tooltip(
+                    button(theme_icon(self.theme))
+                        .on_press(App::ThemeSwitcher)
+                        .style(Button::Text) // TODO: change font color
+                        .padding([6, 12]),
+                    "Switch theme",
+                    tooltip::Position::Left
+                ).style(theme::Container::Box),
+            ].spacing(20)
+        };
 
         let new_todo = {
-            let input = text_editor(&self.content).on_action(Todo::Edit).padding(10);
+            let input = text_editor(&self.content).on_action(App::Edit).padding(10);
             column![
                 input,
                 row![
-                    button(calendar_icon()).on_press(Todo::Calendar)
-                        .padding([6, 12])
-                        .style(Button::Text),
-                    button(reminder_icon()).on_press(Todo::Reminder)
-                        .padding([6, 12])
-                        .style(Button::Text),
+                    tooltip(
+                        button(calendar_icon())
+                            .on_press(App::Calendar)
+                            .padding([6, 12])
+                            .style(Button::Text),
+                        "Set due date",
+                        tooltip::Position::Bottom
+                    ).style(theme::Container::Box),
+                    tooltip(
+                        button(reminder_icon()).on_press(App::Reminder)
+                            .padding([6, 12])
+                            .style(Button::Text),
+                        "Remind me",
+                        tooltip::Position::Bottom
+                    ).style(theme::Container::Box),
                     horizontal_space(),
-                    button("Add").on_press(Todo::New).padding([6, 12]),
+                    button("Add").on_press(App::New).padding([6, 12]),
                 ].spacing(20)
             ].spacing(10)
         };
 
         container(
             column![
-                todos_title,
+                header,
                 new_todo,
             ],
         ).padding(20).into()
     }
 
     fn theme(&self) -> Theme {
-        Theme::TokyoNightLight
+        let theme = if self.theme == 1 {
+            Theme::TokyoNightLight
+        } else {
+            Theme::TokyoNight
+        };
+        theme
     }
 }
 
-fn calendar_icon<'a>() -> Element<'a, Todo> {
+fn calendar_icon<'a>() -> Element<'a, App> {
     icon('\u{f133}')
 }
 
-fn reminder_icon<'a>() -> Element<'a, Todo> {
+fn reminder_icon<'a>() -> Element<'a, App> {
     icon('\u{e802}')
 }
 
-fn icon<'a>(codepoint: char) -> Element<'a, Todo> {
+fn theme_icon<'a>(theme: usize) -> Element<'a, App> {
+    if theme == 1 {
+        icon('\u{E803}')
+    } else {
+        icon('\u{f186}')
+    }
+}
+
+fn icon<'a>(codepoint: char) -> Element<'a, App> {
     const ICON_FONT: Font = Font::with_name("icon-font");
     text(codepoint).font(ICON_FONT).into()
 }
