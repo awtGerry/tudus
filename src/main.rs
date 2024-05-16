@@ -159,9 +159,9 @@ fn reminder_icon<'a>() -> Element<'a, App> {
 
 fn theme_icon<'a>(theme: usize) -> Element<'a, App> {
     if theme == 1 {
-        icon('\u{E803}')
+        icon('\u{E803}') // sun
     } else {
-        icon('\u{f186}')
+        icon('\u{E804}') // moon
     }
 }
 
