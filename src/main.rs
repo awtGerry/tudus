@@ -8,16 +8,27 @@ use iced::widget::{
     horizontal_space,
     tooltip
 };
+
 use iced::theme::Button;
 use iced::theme;
+use iced::window;
 use iced::Application;
 use iced::{Theme, Command, Settings, Element, Font};
 
 fn main() -> iced::Result {
     TodoApp::run(Settings {
+        window: window::Settings {
+            size: iced::Size {
+                width: 1000.0,
+                height: 600.0,
+            },
+            resizable: false,
+            ..window::Settings::default()
+        },
         fonts: vec![include_bytes!("../fonts/icon-font.ttf")
             .as_slice()
-            .into()],
+            .into()
+        ],
         ..Settings::default()
     })
 }
