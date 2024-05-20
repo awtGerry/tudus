@@ -1,8 +1,11 @@
+mod tudus;
+mod db;
+
 use iced::widget::{
     column,
     row,
     container,
-    text_editor,
+    TextInput,
     text,
     button,
     horizontal_space,
@@ -34,17 +37,29 @@ fn main() -> iced::Result {
 }
 
 struct TodoApp {
-    content: iced::widget::text_editor::Content,
+    tudu_input: String,
+    tudus_list: Vec<tudus::Tudu>,
     theme: usize, // 1 for light, 0 for dark
 }
 
 #[derive(Debug, Clone)]
 enum App {
-    Edit(iced::widget::text_editor::Action),
+    // Edit(iced::widget::text_editor::Action),
+    InputChanged(String),
+    TodoMessage(usize, TodoMessage),
     Calendar,
     Reminder,
     New,
     ThemeSwitcher,
+}
+
+#[derive(Debug, Clone)]
+enum TodoMessage {
+    Completed(bool),
+    Edit,
+    DescriptionEdited(String),
+    FinishEditing,
+    Delete,
 }
 
 impl Application for TodoApp {
@@ -55,10 +70,13 @@ impl Application for TodoApp {
     type Flags = (); // data passed to the app on startup
 
     fn new(_flags: Self::Flags) -> (Self, Command<App>) {
+        // for now we will read the theme from a file, later we will use a settings file or a database
         let theme = std::fs::read_to_string("theme.txt").unwrap_or("1".to_string());
         (
             Self {
-                content: text_editor::Content::new(),
+                // content: text_editor::Content::new(),
+                tudu_input: String::new(),
+                tudus_list: Vec::new(),
                 theme: theme.parse().unwrap(),
             },
             Command::none()
@@ -66,13 +84,13 @@ impl Application for TodoApp {
     }
 
     fn title(&self) -> String {
-        String::from("Todo's App")
+        String::from("Tudus")
     }
 
     fn update(&mut self, message: Self::Message) -> Command<App> {
         match message {
-            App::Edit(action) => {
-                self.content.perform(action);
+            App::InputChanged(input) => {
+                self.tudu_input = input;
                 Command::none()
             }
             App::Calendar => {
@@ -82,8 +100,8 @@ impl Application for TodoApp {
                 Command::none()
             }
             App::New => {
-                let todo = self.content.text();
-                println!("Todo: {}", todo);
+                let new_tudu = tudus::Tudu::new(self.tudu_input.clone().to_string(), "".to_string());
+                new_tudu.save();
                 Command::none()
             }
             App::ThemeSwitcher => {
@@ -117,7 +135,10 @@ impl Application for TodoApp {
         };
 
         let new_todo = {
-            let input = text_editor(&self.content).on_action(App::Edit).padding(10);
+            // let input = text_editor(&self.content).on_action(App::Edit).padding(10);
+            let input = TextInput::new("Add a new todo", &self.tudu_input)
+                .on_input(App::InputChanged)
+                .padding(10);
             column![
                 input,
                 row![
