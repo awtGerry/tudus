@@ -1,6 +1,8 @@
 mod tudus;
 mod db;
 
+use tudus::Tudu;
+
 use iced::widget::{
     column,
     row,
@@ -19,7 +21,7 @@ use iced::Application;
 use iced::{Theme, Command, Settings, Element, Font};
 
 fn main() -> iced::Result {
-    TodoApp::run(Settings {
+    TudusApp::run(Settings {
         window: window::Settings {
             size: iced::Size {
                 width: 1000.0,
@@ -36,33 +38,22 @@ fn main() -> iced::Result {
     })
 }
 
-struct TodoApp {
+struct TudusApp {
     tudu_input: String,
-    tudus_list: Vec<tudus::Tudu>,
-    theme: usize, // 1 for light, 0 for dark
+    tudus_list: Vec<Tudu>,
+    theme: u8,
 }
 
 #[derive(Debug, Clone)]
 enum App {
-    // Edit(iced::widget::text_editor::Action),
     InputChanged(String),
-    TodoMessage(usize, TodoMessage),
     Calendar,
     Reminder,
     New,
     ThemeSwitcher,
 }
 
-#[derive(Debug, Clone)]
-enum TodoMessage {
-    Completed(bool),
-    Edit,
-    DescriptionEdited(String),
-    FinishEditing,
-    Delete,
-}
-
-impl Application for TodoApp {
+impl Application for TudusApp {
     type Message = App; // Messages that can be sent to the app
 
     type Theme = Theme; // Custom theme (use default dark for now)
@@ -76,7 +67,7 @@ impl Application for TodoApp {
             Self {
                 // content: text_editor::Content::new(),
                 tudu_input: String::new(),
-                tudus_list: Vec::new(),
+                tudus_list: Tudu::get_all(),
                 theme: theme.parse().unwrap(),
             },
             Command::none()
@@ -100,8 +91,9 @@ impl Application for TodoApp {
                 Command::none()
             }
             App::New => {
-                let new_tudu = tudus::Tudu::new(self.tudu_input.clone().to_string(), "".to_string());
+                let new_tudu = Tudu::new(self.tudu_input.clone().to_string(), "".to_string());
                 new_tudu.save();
+                println!("Tudu saved");
                 Command::none()
             }
             App::ThemeSwitcher => {
@@ -128,7 +120,7 @@ impl Application for TodoApp {
                         .on_press(App::ThemeSwitcher)
                         .style(Button::Text) // TODO: change font color
                         .padding([6, 12]),
-                    "Switch theme",
+                "Switch theme",
                     tooltip::Position::Left
                 ).style(theme::Container::Box),
             ].spacing(20)
@@ -163,10 +155,22 @@ impl Application for TodoApp {
             ].spacing(10)
         };
 
+        let list = {
+            let tudus = self.tudus_list.iter().map(|tudu| {
+                create_tudu(tudu.name.clone())
+            });
+
+            column![
+                text("Tudus").size(20),
+                column(tudus).spacing(8),
+            ]
+        };
+
         container(
             column![
                 header,
                 new_todo,
+                list,
             ],
         ).padding(20).into()
     }
@@ -181,6 +185,12 @@ impl Application for TodoApp {
     }
 }
 
+fn create_tudu<'a>(name: String) -> Element<'a, App> {
+    column![
+        text(name),
+    ].into()
+}
+
 fn calendar_icon<'a>() -> Element<'a, App> {
     icon('\u{f133}')
 }
@@ -189,7 +199,7 @@ fn reminder_icon<'a>() -> Element<'a, App> {
     icon('\u{e802}')
 }
 
-fn theme_icon<'a>(theme: usize) -> Element<'a, App> {
+fn theme_icon<'a>(theme: u8) -> Element<'a, App> {
     if theme == 1 {
         icon('\u{E803}') // sun
     } else {
