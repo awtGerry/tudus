@@ -8,10 +8,12 @@ use iced::widget::{
     row,
     container,
     TextInput,
+    checkbox,
     text,
     button,
     horizontal_space,
-    tooltip
+    tooltip,
+    keyed_column
 };
 
 use iced::theme::Button;
@@ -47,6 +49,7 @@ struct TudusApp {
 #[derive(Debug, Clone)]
 enum App {
     InputChanged(String),
+    CompleteTudu,
     Calendar,
     Reminder,
     New,
@@ -67,7 +70,7 @@ impl Application for TudusApp {
             Self {
                 // content: text_editor::Content::new(),
                 tudu_input: String::new(),
-                tudus_list: Tudu::get_all(),
+                tudus_list: tudus::get_all(),
                 theme: theme.parse().unwrap(),
             },
             Command::none()
@@ -94,6 +97,7 @@ impl Application for TudusApp {
                 let new_tudu = Tudu::new(self.tudu_input.clone().to_string(), "".to_string());
                 new_tudu.save();
                 println!("Tudu saved");
+                self.tudus_list = Tudu::get_all();
                 Command::none()
             }
             App::ThemeSwitcher => {
@@ -104,6 +108,9 @@ impl Application for TudusApp {
                     std::fs::write("theme.txt", "1").unwrap();
                     self.theme = 1;
                 }
+                Command::none()
+            }
+            App::CompleteTudu => {
                 Command::none()
             }
         }
@@ -127,7 +134,6 @@ impl Application for TudusApp {
         };
 
         let new_todo = {
-            // let input = text_editor(&self.content).on_action(App::Edit).padding(10);
             let input = TextInput::new("Add a new todo", &self.tudu_input)
                 .on_input(App::InputChanged)
                 .padding(10);
@@ -156,14 +162,18 @@ impl Application for TudusApp {
         };
 
         let list = {
-            let tudus = self.tudus_list.iter().map(|tudu| {
-                create_tudu(tudu.name.clone())
-            });
-
-            column![
-                text("Tudus").size(20),
-                column(tudus).spacing(8),
-            ]
+            keyed_column(
+                self.tudus_list
+                    .iter()
+                    .enumerate()
+                    .map(|(i, tudu)| {
+                        (
+                            tudu.name,
+                        )
+                    }),
+            )
+            .spacing(10)
+            .into()
         };
 
         container(
