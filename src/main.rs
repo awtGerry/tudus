@@ -12,8 +12,7 @@ use iced::widget::{
     text,
     button,
     horizontal_space,
-    tooltip,
-    keyed_column
+    tooltip, keyed_column
 };
 
 use iced::theme::Button;
@@ -70,7 +69,7 @@ impl Application for TudusApp {
             Self {
                 // content: text_editor::Content::new(),
                 tudu_input: String::new(),
-                tudus_list: tudus::get_all(),
+                tudus_list: Tudu::get_all(),
                 theme: theme.parse().unwrap(),
             },
             Command::none()
@@ -162,18 +161,14 @@ impl Application for TudusApp {
         };
 
         let list = {
-            keyed_column(
-                self.tudus_list
-                    .iter()
-                    .enumerate()
-                    .map(|(i, tudu)| {
-                        (
-                            tudu.name,
-                        )
-                    }),
-            )
-            .spacing(10)
-            .into()
+            let tudus = self.tudus_list.iter().map(|tudu| {
+                create_tudu(tudu.name.clone())
+            });
+
+            column![
+                text("Tudus").size(20),
+                column(tudus).spacing(8),
+            ]
         };
 
         container(
