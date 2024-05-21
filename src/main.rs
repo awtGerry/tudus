@@ -160,21 +160,28 @@ impl Application for TudusApp {
             ].spacing(10)
         };
 
+        /* Iterate over the todos */
         let tudus: Vec<Element<'_, Self::Message>> = self.tudus_list
             .iter()
             .map(|tudu| {
-                text(&tudu.name).into()
+                let id = match &tudu.id {
+                    Some(id) => id,
+                    None => panic!("No id found"),
+                };
+                row![
+                    text(id.to_string()),
+                    text(&tudu.name)
+                ].into()
             })
             .collect();
 
         let tudus = if tudus.is_empty() {
             column(
-                [text("No tudus yet").into()]
+                [text("No tudus yet, YAY!").into()]
             )
         } else {
             let tudus = Column::with_children(tudus)
                 .spacing(10)
-                .align_items(iced::Alignment::Center)
                 .width(iced::Length::Fill);
 
             column(
