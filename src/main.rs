@@ -4,15 +4,15 @@ mod db;
 use tudus::Tudu;
 
 use iced::widget::{
+    Column,
     column,
     row,
     container,
     TextInput,
-    checkbox,
     text,
     button,
     horizontal_space,
-    tooltip, keyed_column
+    tooltip,
 };
 
 use iced::theme::Button;
@@ -160,22 +160,33 @@ impl Application for TudusApp {
             ].spacing(10)
         };
 
-        let list = {
-            let tudus = self.tudus_list.iter().map(|tudu| {
-                create_tudu(tudu.name.clone())
-            });
+        let tudus: Vec<Element<'_, Self::Message>> = self.tudus_list
+            .iter()
+            .map(|tudu| {
+                text(&tudu.name).into()
+            })
+            .collect();
 
-            column![
-                text("Tudus").size(20),
-                column(tudus).spacing(8),
-            ]
+        let tudus = if tudus.is_empty() {
+            column(
+                [text("No tudus yet").into()]
+            )
+        } else {
+            let tudus = Column::with_children(tudus)
+                .spacing(10)
+                .align_items(iced::Alignment::Center)
+                .width(iced::Length::Fill);
+
+            column(
+                [tudus.into()]
+            )
         };
 
         container(
             column![
                 header,
                 new_todo,
-                list,
+                tudus,
             ],
         ).padding(20).into()
     }
@@ -188,12 +199,6 @@ impl Application for TudusApp {
         };
         theme
     }
-}
-
-fn create_tudu<'a>(name: String) -> Element<'a, App> {
-    column![
-        text(name),
-    ].into()
 }
 
 fn calendar_icon<'a>() -> Element<'a, App> {
