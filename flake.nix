@@ -1,5 +1,5 @@
 {
-  description = "Build a cargo project without extra checks";
+  description = "Simple todo gui app";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
