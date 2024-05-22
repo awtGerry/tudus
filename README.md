@@ -1,5 +1,5 @@
 <p align="center">
-GUI app made with <a href="https://github.com/iced-rs/">iced</a> for managing my
+GUI app made with <a href="https://github.com/iced-rs/">iced</a> to manage my
 personal takings.
 </p>
 
