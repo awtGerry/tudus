@@ -7,6 +7,7 @@ use iced::widget::{
     Column,
     column,
     row,
+    scrollable,
     radio,
     container,
     TextInput,
@@ -43,13 +44,23 @@ fn main() -> iced::Result {
 struct TudusApp {
     tudu_input: String,
     tudus_list: Vec<Tudu>,
+    tudus_show: Vec<Element<'static, App>>,
     theme: u8,
+}
+
+#[allow(unused)]
+#[derive(Debug, Clone)]
+enum TudusShow {
+    All,
+    Active,
+    Completed,
 }
 
 #[derive(Debug, Clone)]
 enum App {
     InputChanged(String),
     CompleteTudu(i64),
+    ChangeTudusShow(TudusShow),
     Calendar,
     Reminder,
     New,
@@ -71,6 +82,7 @@ impl Application for TudusApp {
                 // content: text_editor::Content::new(),
                 tudu_input: String::new(),
                 tudus_list: Tudu::get_all(),
+                tudus_show: Vec::new(),
                 theme: theme.parse().unwrap(),
             },
             Command::none()
@@ -114,6 +126,9 @@ impl Application for TudusApp {
                 Tudu::complete_tudu(id);
                 // update the list of tudus
                 self.tudus_list = Tudu::get_all();
+                Command::none()
+            }
+            App::ChangeTudusShow(_) => {
                 Command::none()
             }
         }
@@ -164,8 +179,18 @@ impl Application for TudusApp {
             ].spacing(10)
         };
 
+        let toggle_tudus = {
+            row![
+                button("All").on_press(App::ChangeTudusShow(TudusShow::All)),
+                button("Active").on_press(App::ChangeTudusShow(TudusShow::Active)),
+                button("Completed").on_press(App::ChangeTudusShow(TudusShow::Completed)),
+            ]
+        };
+
+        /* Check TudusShow and filter the list of tudus */
+
         /* Iterate over the todos */
-        let tudus: Vec<Element<'_, Self::Message>> = self.tudus_list
+        /* let tudus: Vec<Element<'_, Self::Message>> = self.tudus_list
             .iter()
             .filter(|tudu| !tudu.completed)
             .map(|tudu| {
@@ -186,19 +211,47 @@ impl Application for TudusApp {
                 .spacing(10)
                 .into()
             })
-            .collect();
+            .collect(); */
+
+        /* Iterate over the completed todos */
+        /* let completed_tudus = self.tudus_list
+            .iter()
+            .filter(|tudu| tudu.completed)
+            .map(|tudu| {
+                let id = match &tudu.id {
+                    Some(id) => id,
+                    None => panic!("No id found"),
+                };
+                row![
+                    radio(
+                        "",
+                        *id,
+                        None,
+                        App::CompleteTudu
+                    ),
+
+                    text(&tudu.name)
+                ]
+                .spacing(10)
+                .into()
+            })
+            .collect(); */
+
+        /* Iterate over all the todos */
 
         let tudus = if tudus.is_empty() {
-            column(
-                [text("No tudus yet, YAY!").into()]
+            scrollable(
+                text("No tudus yet, YAY!")
             )
         } else {
             let tudus = Column::with_children(tudus)
                 .spacing(10)
                 .width(iced::Length::Fill);
 
-            column(
-                [tudus.into()]
+            scrollable(
+                column![
+                    tudus
+                ]
             )
         };
 
