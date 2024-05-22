@@ -23,6 +23,12 @@ use iced::window;
 use iced::Application;
 use iced::{Theme, Command, Settings, Element, Font};
 
+/* TODO:
+ * Stop making the same queries multiple times it's inefficient
+ * Add due date and reminder
+ * Add a settings page (maybe)
+*/
+
 fn main() -> iced::Result {
     TudusApp::run(Settings {
         window: window::Settings {
@@ -76,7 +82,7 @@ impl Application for TudusApp {
     type Flags = (); // data passed to the app on startup
 
     fn new(_flags: Self::Flags) -> (Self, Command<App>) {
-        // for now we will read the theme from a file, later we will use a settings file or a database
+        // for now we will read the theme from a file, later we will use a settings file or geting it from the db
         let theme = std::fs::read_to_string("theme.txt").unwrap_or("1".to_string());
         (
             Self {
