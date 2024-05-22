@@ -44,7 +44,7 @@ fn main() -> iced::Result {
 struct TudusApp {
     tudu_input: String,
     tudus_list: Vec<Tudu>,
-    tudus_show: Vec<Element<'static, App>>,
+    state_show: TudusShow,
     theme: u8,
 }
 
@@ -59,7 +59,8 @@ enum TudusShow {
 #[derive(Debug, Clone)]
 enum App {
     InputChanged(String),
-    CompleteTudu(i64),
+    CheckTudu(i64),
+    UncheckTudu(i64),
     ChangeTudusShow(TudusShow),
     Calendar,
     Reminder,
@@ -82,7 +83,7 @@ impl Application for TudusApp {
                 // content: text_editor::Content::new(),
                 tudu_input: String::new(),
                 tudus_list: Tudu::get_all(),
-                tudus_show: Vec::new(),
+                state_show: TudusShow::All,
                 theme: theme.parse().unwrap(),
             },
             Command::none()
@@ -122,13 +123,18 @@ impl Application for TudusApp {
                 }
                 Command::none()
             }
-            App::CompleteTudu(id) => {
+            App::CheckTudu(id) => {
                 Tudu::complete_tudu(id);
-                // update the list of tudus
                 self.tudus_list = Tudu::get_all();
                 Command::none()
             }
-            App::ChangeTudusShow(_) => {
+            App::UncheckTudu(id) => {
+                Tudu::uncomplete_tudu(id);
+                self.tudus_list = Tudu::get_all();
+                Command::none()
+            }
+            App::ChangeTudusShow(state) => {
+                self.state_show = state;
                 Command::none()
             }
         }
@@ -184,60 +190,104 @@ impl Application for TudusApp {
                 button("All").on_press(App::ChangeTudusShow(TudusShow::All)),
                 button("Active").on_press(App::ChangeTudusShow(TudusShow::Active)),
                 button("Completed").on_press(App::ChangeTudusShow(TudusShow::Completed)),
-            ]
+            ].spacing(20)
+        };
+
+        let spc1 = {
+            column![
+                new_todo,
+                toggle_tudus
+            ].spacing(20)
         };
 
         /* Check TudusShow and filter the list of tudus */
+        #[allow(unused)]
+        let mut tudus: Vec<Element<'_, App>> = Vec::new();
+        match self.state_show {
+            TudusShow::All => {
+                tudus = self.tudus_list
+                    .iter()
+                    .map(|tudu| {
+                        let id = match &tudu.id {
+                            Some(id) => id,
+                            None => panic!("No id found"),
+                        };
+                        if !tudu.completed {
+                            row![
+                                radio(
+                                    "",
+                                    *id,
+                                    None,
+                                    App::CheckTudu
+                                ),
+                                text(&tudu.name).size(20)
+                            ]
+                            .spacing(10)
+                            .into()
+                        } else {
+                            row![
+                                radio(
+                                    "",
+                                    *id,
+                                    Some(*id),
+                                    App::UncheckTudu
+                                ),
+                                text(&tudu.name).size(20)
+                            ]
+                            .spacing(10)
+                            .into()
+                        }
+                    })
+                    .collect();
+            }
+            TudusShow::Active => {
+                tudus = self.tudus_list
+                    .iter()
+                    .filter(|tudu| !tudu.completed)
+                    .map(|tudu| {
+                        let id = match &tudu.id {
+                            Some(id) => id,
+                            None => panic!("No id found"),
+                        };
+                        row![
+                            radio(
+                                "",
+                                *id,
+                                None,
+                                App::CheckTudu
+                            ),
 
-        /* Iterate over the todos */
-        /* let tudus: Vec<Element<'_, Self::Message>> = self.tudus_list
-            .iter()
-            .filter(|tudu| !tudu.completed)
-            .map(|tudu| {
-                let id = match &tudu.id {
-                    Some(id) => id,
-                    None => panic!("No id found"),
-                };
-                row![
-                    radio(
-                        "",
-                        *id,
-                        None,
-                        App::CompleteTudu
-                    ),
-
-                    text(&tudu.name)
-                ]
-                .spacing(10)
-                .into()
-            })
-            .collect(); */
-
-        /* Iterate over the completed todos */
-        /* let completed_tudus = self.tudus_list
-            .iter()
-            .filter(|tudu| tudu.completed)
-            .map(|tudu| {
-                let id = match &tudu.id {
-                    Some(id) => id,
-                    None => panic!("No id found"),
-                };
-                row![
-                    radio(
-                        "",
-                        *id,
-                        None,
-                        App::CompleteTudu
-                    ),
-
-                    text(&tudu.name)
-                ]
-                .spacing(10)
-                .into()
-            })
-            .collect(); */
-
-        /* Iterate over all the todos */
+                            text(&tudu.name).size(20)
+                        ]
+                        .spacing(10)
+                        .into()
+                    })
+                    .collect();
+            }
+            TudusShow::Completed => {
+                tudus = self.tudus_list
+                    .iter()
+                    .filter(|tudu| tudu.completed)
+                    .map(|tudu| {
+                        let id = match &tudu.id {
+                            Some(id) => id,
+                            None => panic!("No id found"),
+                        };
+                        row![
+                            radio(
+                                "",
+                                *id,
+                                Some(*id),
+                                App::UncheckTudu
+                            ),
+                            text(&tudu.name).size(20)
+                        ]
+                        .spacing(10)
+                        .into()
+                    })
+                    .collect();
+            }
+        };
 
         let tudus = if tudus.is_empty() {
             scrollable(
@@ -245,7 +295,7 @@ impl Application for TudusApp {
             )
         } else {
             let tudus = Column::with_children(tudus)
-                .spacing(10)
+                .spacing(20)
                 .width(iced::Length::Fill);
 
             scrollable(
@@ -257,17 +307,17 @@ impl Application for TudusApp {
 
         /* TODO: Investigate if there is a better way to do the y+ spacing*/
         /* Space between new todo and todo */
-        let spc = {
+        let spc2 = {
             column![
-                new_todo,
+                spc1,
                 tudus
-            ].spacing(20)
+            ].spacing(30)
         };
 
         container(
             column![
                 header,
-                spc
+                spc2
             ],
         ).padding(20).into()
     }

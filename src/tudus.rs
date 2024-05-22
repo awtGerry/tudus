@@ -59,6 +59,7 @@ impl Tudu {
 
     pub fn get_all() -> Vec<Self> {
         let conn = db::connect();
+        db::create_table(&conn);
         let mut stmt = conn.prepare("SELECT * FROM tudus").unwrap();
         let mut tudus = Vec::new();
         while let State::Row = stmt.next().unwrap() {
@@ -89,7 +90,14 @@ impl Tudu {
         let query = format!("UPDATE tudus SET completed = 1 WHERE id = {}", id);
         conn.execute(&query).unwrap();
     }
+    
+    pub fn uncomplete_tudu(id: i64) {
+        let conn = db::connect();
+        let query = format!("UPDATE tudus SET completed = 0 WHERE id = {}", id);
+        conn.execute(&query).unwrap();
+    }
 
+    #[allow(unused)]
     pub fn delete_tudu(id: i64) {
         let conn = db::connect();
         let query = format!("DELETE FROM tudus WHERE id = {}", id);

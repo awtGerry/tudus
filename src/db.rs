@@ -1,7 +1,9 @@
 use sqlite;
 
 pub fn connect() -> sqlite::Connection {
-    sqlite::open("tudus.db").unwrap()
+    let conn = sqlite::open("tudus.db");
+    create_table(&conn.as_ref().unwrap());
+    conn.unwrap()
 }
 
 pub fn create_table(conn: &sqlite::Connection) {
