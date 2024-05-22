@@ -7,6 +7,7 @@ use iced::widget::{
     Column,
     column,
     row,
+    radio,
     container,
     TextInput,
     text,
@@ -48,7 +49,7 @@ struct TudusApp {
 #[derive(Debug, Clone)]
 enum App {
     InputChanged(String),
-    CompleteTudu,
+    CompleteTudu(i64),
     Calendar,
     Reminder,
     New,
@@ -109,7 +110,10 @@ impl Application for TudusApp {
                 }
                 Command::none()
             }
-            App::CompleteTudu => {
+            App::CompleteTudu(id) => {
+                Tudu::complete_tudu(id);
+                // update the list of tudus
+                self.tudus_list = Tudu::get_all();
                 Command::none()
             }
         }
@@ -163,15 +167,24 @@ impl Application for TudusApp {
         /* Iterate over the todos */
         let tudus: Vec<Element<'_, Self::Message>> = self.tudus_list
             .iter()
+            .filter(|tudu| !tudu.completed)
             .map(|tudu| {
                 let id = match &tudu.id {
                     Some(id) => id,
                     None => panic!("No id found"),
                 };
                 row![
-                    text(id.to_string()),
+                    radio(
+                        "",
+                        *id,
+                        None,
+                        App::CompleteTudu
+                    ),
+
                     text(&tudu.name)
-                ].into()
+                ]
+                .spacing(10)
+                .into()
             })
             .collect();
 
@@ -189,11 +202,19 @@ impl Application for TudusApp {
             )
         };
 
+        /* TODO: Investigate if there is a better way to do the y+ spacing*/
+        /* Space between new todo and todo */
+        let spc = {
+            column![
+                new_todo,
+                tudus
+            ].spacing(20)
+        };
+
         container(
             column![
                 header,
-                new_todo,
-                tudus,
+                spc
             ],
         ).padding(20).into()
     }

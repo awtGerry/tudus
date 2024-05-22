@@ -30,23 +30,6 @@ impl Tudu {
         }
     }
 
-    pub fn set_due_date(&mut self, due_date: DateTime<Local>) {
-        self.due_date = Some(due_date);
-    }
-
-    pub fn set_reminder(&mut self, reminder_at: DateTime<Local>) {
-        self.reminder = true;
-        self.reminder_at = Some(reminder_at);
-    }
-
-    pub fn complete(&mut self) {
-        self.completed = true;
-    }
-
-    pub fn uncomplete(&mut self) {
-        self.completed = false;
-    }
-
     pub fn save(&self) {
         let conn = db::connect();
         db::create_table(&conn);
@@ -99,5 +82,17 @@ impl Tudu {
             });
         }
         tudus
+    }
+
+    pub fn complete_tudu(id: i64) {
+        let conn = db::connect();
+        let query = format!("UPDATE tudus SET completed = 1 WHERE id = {}", id);
+        conn.execute(&query).unwrap();
+    }
+
+    pub fn delete_tudu(id: i64) {
+        let conn = db::connect();
+        let query = format!("DELETE FROM tudus WHERE id = {}", id);
+        conn.execute(&query).unwrap();
     }
 }

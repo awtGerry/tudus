@@ -5,6 +5,7 @@ pub fn connect() -> sqlite::Connection {
 }
 
 pub fn create_table(conn: &sqlite::Connection) {
+    // Create a table for tudus
     conn.execute(
         "CREATE TABLE IF NOT EXISTS tudus (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
