@@ -4,6 +4,8 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
+    rust-overlay.url = "github:oxalica/rust-overlay";
+
     crane = {
       url = "github:ipetkov/crane";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -15,32 +17,35 @@
   outputs = {
     self,
     nixpkgs,
+    rust-overlay,
     crane,
     flake-utils,
     ...
   }:
-    flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = import nixpkgs {
-        inherit system;
-      };
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        craneLib = crane.lib.${system};
 
-      buildInputs = with pkgs; [
-        vulkan-loader
-        # for wayland
-        wayland
-        wayland-protocols
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [ (import rust-overlay) ];
+        };
 
-        # for x11
-        xorg.libX11
-        xorg.libXcursor
-        xorg.libXrandr
-        xorg.libXi
+        libPath = with pkgs; lib.makeLibraryPath [
+          vulkan-loader
 
-        libxkbcommon
-      ];
-      my-crate = crane.lib.${system}.buildPackage {
-        src = ./.;
-        inherit buildInputs;
+          # for wayland
+          wayland
+          wayland-protocols
+
+          # for x11
+          xorg.libX11
+          xorg.libXcursor
+          xorg.libXrandr
+          xorg.libXi
+
+          libxkbcommon
+        ];
 
         nativeBuildInputs = with pkgs; [
           pkg-config
@@ -48,23 +53,66 @@
           gtk3
           cmake
         ];
-      };
-    in {
-      checks = {
-        inherit my-crate;
-      };
 
-      packages.default = my-crate;
+        buildInputs = with pkgs; [
+          vulkan-loader
 
-      apps.default = flake-utils.lib.mkApp {
-        drv = my-crate;
+          # for wayland
+          wayland
+          wayland-protocols
+
+          # for x11
+          xorg.libX11
+          xorg.libXcursor
+          xorg.libXrandr
+          xorg.libXi
+
+          libxkbcommon
+        ];
+
+        cargoArtifacts = craneLib.buildDepsOnly ({
+          src = craneLib.cleanCargoSource (craneLib.path ./.);
+          inherit buildInputs nativeBuildInputs;
+          pname = "tudus";
+        });
+      in with pkgs; {
+        packages = rec {
+          tudus = craneLib.buildPackage {
+            src = craneLib.path ./.;
+
+            inherit buildInputs nativeBuildInputs cargoArtifacts;
+
+            postInstall = ''
+              install -Dm644 "$src/app/tudus.desktop" -t "$out/share/applications/"
+
+              patchelf --set-rpath ${libPath} $out/bin/tudus
+
+              wrapProgram $out/bin/tudus \
+                --prefix PATH : ${lib.makeBinPath [ pkgs.gnome.zenity pkgs.libsForQt5.kdialog]}\
+            '';
+
+            GIT_HASH = self.rev or self.dirtyRev;
+          };
+
+          default = tudus;
+        };
+
+        devShell = mkShell {
+          inherit buildInputs nativeBuildInputs;
+
+          packages = with pkgs; [
+            (rust-bin.stable.latest.default.override {
+              extensions = [ "rust-src" "rust-analyzer" ];
+            })
+            cargo-watch
+            gnome.zenity
+            libsForQt5.kdialog
+          ];
+          LD_LIBRARY_PATH = "${libPath}";
+        };
+      }) // {
+        overlay = final: prev: {
+          inherit (self.packages.${final.system}) tudus;
+        };
       };
-
-      devShells.default = pkgs.mkShell {
-        inputsFrom = builtins.attrValues self.checks;
-
-        LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath buildInputs;
-        # Extra inputs can be added here
-      };
-    });
 }
