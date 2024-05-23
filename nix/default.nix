@@ -32,12 +32,14 @@ rustPlatform.buildRustPackage rec {
     xorg.libXi
 
     libxkbcommon
+    makeWrapper
   ]
   ++ lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.SystemConfiguration
     darwin.apple_sdk.frameworks.Foundation
   ];
 
+  # nativeBuildInputs = oldAttrs.nativeBuildInputs or [] ++ [ pkgs.makeWrapper ];
   nativeBuildInputs = with pkgs; [
     installShellFiles
     pkg-config
