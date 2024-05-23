@@ -59,7 +59,7 @@ rustPlatform.buildRustPackage rec {
   '';
 
   postFixup = ''
-    wrapProgram $out/bin/ytdlp-gui \
+    wrapProgram $out/bin/tudus \
       --suffix LD_LIBRARY_PATH : ${pkgs.lib.makeLibraryPath buildInputs}
   '';
 
