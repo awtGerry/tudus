@@ -19,11 +19,6 @@ rustPlatform.buildRustPackage rec {
   };
 
   buildInputs = with pkgs; [
-    pkg-config
-    gtk-layer-shell
-    gtk3
-    cmake
-
     vulkan-loader
 
     # for wayland
@@ -49,19 +44,7 @@ rustPlatform.buildRustPackage rec {
     gtk-layer-shell
     gtk3
     cmake
-    vulkan-loader
-
-    # for wayland
-    wayland
-    wayland-protocols
-
-    # for x11
-    xorg.libX11
-    xorg.libXcursor
-    xorg.libXrandr
-    xorg.libXi
-
-    libxkbcommon
+    makeWrapper
   ];
 
   postInstall = ''
@@ -73,6 +56,11 @@ rustPlatform.buildRustPackage rec {
 
   patchPhase = ''
     sed -i 's/env!("CARGO_PKG_VERSION")/\"${version}\"/g' src/main.rs
+  '';
+
+  postFixup = ''
+    wrapProgram $out/bin/ytdlp-gui \
+      --suffix LD_LIBRARY_PATH : ${pkgs.lib.makeLibraryPath buildInputs}
   '';
 
   meta = with lib;{
