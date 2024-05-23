@@ -1,8 +1,0 @@
-[Desktop Entry]
-Name=Tudus
-Comment=Run tudus app
-Exec=tudus
-Icon=tudus
-Terminal=false
-Type=Application
-Categories=Development;

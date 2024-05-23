@@ -19,6 +19,11 @@ rustPlatform.buildRustPackage rec {
   };
 
   buildInputs = with pkgs; [
+    pkg-config
+    gtk-layer-shell
+    gtk3
+    cmake
+
     vulkan-loader
 
     # for wayland
@@ -44,6 +49,19 @@ rustPlatform.buildRustPackage rec {
     gtk-layer-shell
     gtk3
     cmake
+    vulkan-loader
+
+    # for wayland
+    wayland
+    wayland-protocols
+
+    # for x11
+    xorg.libX11
+    xorg.libXcursor
+    xorg.libXrandr
+    xorg.libXi
+
+    libxkbcommon
   ];
 
   postInstall = ''
