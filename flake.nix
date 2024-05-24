@@ -1,79 +1,116 @@
 {
+  description = "Tudus";
+
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    devenv.url = "github:cachix/devenv";
-    nix2container.url = "github:nlewo/nix2container";
-    nix2container.inputs.nixpkgs.follows = "nixpkgs";
-    mk-shell-bin.url = "github:rrbutani/nix-mk-shell-bin";
-    treefmt-nix.url = "github:numtide/treefmt-nix";
-    mission-control.url = "github:Platonic-Systems/mission-control";
-    flake-root.url = "github:srid/flake-root";
-    fenix = {
-      url = "github:nix-community/fenix";
+    flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixpkgs-unstable";
+    rust-overlay.url = "github:oxalica/rust-overlay";
+    crane = {
+      url = "github:ipetkov/crane";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = inputs@{ flake-parts, nixpkgs, ... }:
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [
-        inputs.devenv.flakeModule
-        inputs.treefmt-nix.flakeModule
-        inputs.flake-root.flakeModule
-        inputs.mission-control.flakeModule
-        inputs.flake-parts.flakeModules.easyOverlay
-      ];
-      systems = nixpkgs.lib.systems.flakeExposed;
-      perSystem = { config, self', inputs', pkgs, system, final, ... }: {
-        treefmt.config = {
-          inherit (config.flake-root) projectRootFile;
-          programs.rustfmt.enable = true;
-          package = pkgs.treefmt;
-          programs.nixpkgs-fmt.enable = true;
-          programs.prettier.enable = true;
-          programs.taplo.enable = true;
-          programs.beautysh = {
-            enable = true;
-            indent_size = 4;
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    crane,
+    rust-overlay,
+    ...
+  }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        craneLib = crane.lib.${system};
+
+        pkgs = import nixpkgs { inherit system; overlays = [ rust-overlay.overlays.default ]; };
+
+        libPath =  with pkgs; lib.makeLibraryPath [
+          vulkan-loader
+          libGL
+          wayland
+          libxkbcommon
+          bzip2
+          fontconfig
+          freetype
+          xorg.libX11
+          xorg.libXcursor
+          xorg.libXrandr
+          xorg.libXi
+        ];
+
+        nativeBuildInputs = with pkgs; [
+          pkg-config
+          cmake
+          makeWrapper
+        ];
+
+        buildInputs = with pkgs; [
+          expat
+          pkg-config
+
+          fontconfig
+          freetype
+          freetype.dev
+
+          vulkan-headers
+          vulkan-loader
+          libGL
+
+          libxkbcommon
+          # WINIT_UNIX_BACKEND=wayland
+          wayland
+
+          # WINIT_UNIX_BACKEND=x11
+          xorg.libX11
+          xorg.libXcursor
+          xorg.libXi
+          xorg.libXrandr
+        ];
+
+        cargoArtifacts = craneLib.buildDepsOnly ({
+          src = craneLib.cleanCargoSource (craneLib.path ./.);
+          inherit buildInputs nativeBuildInputs;
+          pname = "tudus";
+        });
+      in with pkgs; {
+        packages = rec {
+          tudus = craneLib.buildPackage {
+            src = craneLib.path ./.;
+
+            inherit buildInputs nativeBuildInputs cargoArtifacts;
+
+            postInstall = ''
+              install -Dm644 "$src/app/tudus.desktop" -t "$out/share/applications/"
+
+              patchelf --set-rpath ${libPath} $out/bin/tudus
+
+              wrapProgram $out/bin/tudus \
+                --prefix PATH : ${lib.makeBinPath [ pkgs.gnome.zenity pkgs.libsForQt5.kdialog]}\
+            '';
+
+            GIT_HASH = self.rev or self.dirtyRev;
           };
-        };
-        mission-control.scripts = {
-          fmt = {
-            description = "Format source code";
-            exec = config.treefmt.build.wrapper;
-            category = "Dev Tools";
-          };
-          run = {
-            description = "Run app";
-            exec = "cargo run";
-            category = "Dev Tools";
-          };
+
+          default = tudus;
         };
 
-        packages.default = pkgs.callPackage ./nix { };
-        overlayAttrs = {
-          inherit (config.packages) tudus;
-        };
-        packages.tudus = pkgs.callPackage ./nix { };
+        devShell = mkShell {
+          inherit buildInputs nativeBuildInputs;
 
-        devShells.default = pkgs.mkShell {
-          inputsFrom = [
-            config.flake-root.devShell
-            config.mission-control.devShell
-            self'.devShells.my-shell
+          packages = with pkgs; [
+            (rust-bin.stable.latest.default.override {
+              extensions = [ "rust-src" "rust-analyzer" ];
+            })
+            cargo-watch
+            gnome.zenity
+            libsForQt5.kdialog
           ];
+          LD_LIBRARY_PATH = "${libPath}";
         };
-        devenv.shells.my-shell = {
-          languages.rust = {
-            enable = true;
-            version = "latest";
-          };
-          packages = [
-          ];
-          enterShell = ''
-            echo $'\e[1;32mtudus project~\e[0m'
-          '';
+      }) // {
+        overlay = final: prev: {
+          inherit (self.packages.${final.system}) tudus;
         };
       };
-    };
 }

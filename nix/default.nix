@@ -32,7 +32,6 @@ rustPlatform.buildRustPackage rec {
     xorg.libXi
 
     libxkbcommon
-    makeWrapper
   ]
   ++ lib.optionals stdenv.isDarwin [
     darwin.apple_sdk.frameworks.SystemConfiguration
@@ -47,6 +46,7 @@ rustPlatform.buildRustPackage rec {
     gtk3
     cmake
     makeWrapper
+    wrapGAppsHook
   ];
 
   postInstall = ''
