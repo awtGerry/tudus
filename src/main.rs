@@ -1,4 +1,5 @@
 mod tudus;
+mod cfg;
 mod db;
 
 use tudus::Tudu;
@@ -23,13 +24,8 @@ use iced::window;
 use iced::Application;
 use iced::{Theme, Command, Settings, Element, Font};
 
-/* TODO:
- * Stop making the same queries multiple times it's inefficient
- * Add due date and reminder
- * Add a settings page (maybe)
-*/
-
 fn main() -> iced::Result {
+    cfg::create_default_configs();
     TudusApp::run(Settings {
         window: window::Settings {
             size: iced::Size {
@@ -48,10 +44,11 @@ fn main() -> iced::Result {
 }
 
 struct TudusApp {
+    // We'll connect to the database when the app starts and pass the connection to the app
+    db: sqlite::Connection,
     tudu_input: String,
     tudus_list: Vec<Tudu>,
     state_show: TudusShow,
-    theme: u8,
 }
 
 #[allow(unused)]
@@ -83,14 +80,15 @@ impl Application for TudusApp {
 
     fn new(_flags: Self::Flags) -> (Self, Command<App>) {
         // for now we will read the theme from a file, later we will use a settings file or geting it from the db
-        let theme = std::fs::read_to_string("theme.txt").unwrap_or("1".to_string());
+        // let theme = std::fs::read_to_string("theme.txt").unwrap_or("1".to_string());
+        let conn = db::connect();
+        let all_tudus = Tudu::get_all(&conn);
         (
             Self {
-                // content: text_editor::Content::new(),
+                db: conn,
                 tudu_input: String::new(),
-                tudus_list: Tudu::get_all(),
+                tudus_list: all_tudus,
                 state_show: TudusShow::All,
-                theme: theme.parse().unwrap(),
             },
             Command::none()
         )
@@ -114,29 +112,23 @@ impl Application for TudusApp {
             }
             App::New => {
                 let new_tudu = Tudu::new(self.tudu_input.clone().to_string(), "".to_string());
-                new_tudu.save();
+                new_tudu.save(&self.db);
                 println!("Tudu saved");
-                self.tudus_list = Tudu::get_all();
+                self.tudus_list = Tudu::get_all(&self.db);
                 Command::none()
             }
             App::ThemeSwitcher => {
-                if self.theme == 1 {
-                    std::fs::write("theme.txt", "0").unwrap();
-                    self.theme = 0;
-                } else {
-                    std::fs::write("theme.txt", "1").unwrap();
-                    self.theme = 1;
-                }
+                cfg::toggle_theme();
                 Command::none()
             }
             App::CheckTudu(id) => {
                 Tudu::complete_tudu(id);
-                self.tudus_list = Tudu::get_all();
+                self.tudus_list = Tudu::get_all(&self.db);
                 Command::none()
             }
             App::UncheckTudu(id) => {
                 Tudu::uncomplete_tudu(id);
-                self.tudus_list = Tudu::get_all();
+                self.tudus_list = Tudu::get_all(&self.db);
                 Command::none()
             }
             App::ChangeTudusShow(state) => {
@@ -153,7 +145,7 @@ impl Application for TudusApp {
                 new_todo_title,
                 horizontal_space(),
                 tooltip(
-                    button(theme_icon(self.theme))
+                    button(theme_icon())
                         .on_press(App::ThemeSwitcher)
                         .style(Button::Text) // TODO: change font color
                         .padding([6, 12]),
@@ -329,7 +321,7 @@ impl Application for TudusApp {
     }
 
     fn theme(&self) -> Theme {
-        let theme = if self.theme == 1 {
+        let theme = if cfg::get_theme().variant.unwrap() == "dark" {
             Theme::TokyoNightLight
         } else {
             Theme::TokyoNight
@@ -346,8 +338,10 @@ fn reminder_icon<'a>() -> Element<'a, App> {
     icon('\u{e802}')
 }
 
-fn theme_icon<'a>(theme: u8) -> Element<'a, App> {
-    if theme == 1 {
+fn theme_icon<'a>() -> Element<'a, App> {
+    let variant = cfg::get_theme().variant.unwrap();
+
+    if variant == "dark" {
         icon('\u{E803}') // sun
     } else {
         icon('\u{E804}') // moon

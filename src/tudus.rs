@@ -30,8 +30,7 @@ impl Tudu {
         }
     }
 
-    pub fn save(&self) {
-        let conn = db::connect();
+    pub fn save(&self, conn: &sqlite::Connection) {
         db::create_table(&conn);
         let query = format!(
             "INSERT INTO tudus (
@@ -57,9 +56,7 @@ impl Tudu {
         conn.execute(&query).unwrap();
     }
 
-    pub fn get_all() -> Vec<Self> {
-        let conn = db::connect();
-        db::create_table(&conn);
+    pub fn get_all(conn: &sqlite::Connection) -> Vec<Self> {
         let mut stmt = conn.prepare("SELECT * FROM tudus").unwrap();
         let mut tudus = Vec::new();
         while let State::Row = stmt.next().unwrap() {
