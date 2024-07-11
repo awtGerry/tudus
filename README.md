@@ -11,6 +11,6 @@ personal takings.
 - Add new taks
 - Toggle tasks as done or not
 - Remove tasks
-- Set to do date
-- Set priority
-- Set reminder and reminder date
+- Set to do date (tudu)
+- Set priority (tudu)
+- Set reminder and reminder date (tudu)
